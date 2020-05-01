@@ -7,7 +7,7 @@ const MAIN_PROTO_PATH = path.join(__dirname, './proto/app.proto');
 
 const PORT = process.env.PORT;
 
-const shopProto = _loadProto(MAIN_PROTO_PATH).shop;
+const users = require('./users');
 
 const logger = pino({
     name: 'userservice-server',
@@ -20,30 +20,50 @@ const logger = pino({
  * loads a protobuf file
  */
 
-const _loadProto = path => {
-    const packageDefinition = protoLoader.loadSync(
-        path, {
-            keepCase: true,
-            longs: String,
-            enums: String,
-            defaults: true,
-            oneofs: true
-        }
-    );
+class ShopServer {
+    constructor(protoRoot, port = PORT) {
+        this.port = port;
 
-    return grpc.loadPackageDefinition(packageDefinition);
+        this.packages = {
+            shop: loadProto(MAIN_PROTO_PATH),
+        };
+
+        this.server = new grpc.Server();
+        this.loadAllProtos(protoRoot);
+
+    }
+
+    listen() {
+        this.server.bind(`0.0.0.0:${this.port}`, grpc.ServerCredentials.createInsecure());
+        logger.info(`user service grpc server listening on ${this.port}`);
+        this.server.start();
+    }
+
+    loadProto(path) {
+        const packageDefinition = protoLoader.loadSync(
+            path, {
+                keepCase: true,
+                longs: String,
+                enums: String,
+                defaults: true,
+                oneofs: true
+            }
+        );
+
+        return grpc.loadPackageDefinition(packageDefinition);
+    }
+
+    loadAllProtos(protoRoot) {
+        const shopPackage = this.packages.shop.shop;
+
+        this.server.addService(
+            shopPackage.UserService.service,
+            {}
+        );
+
+    }
 }
 
-/**
- * starts an RPC server that receives requests for the
- * User service at the sample server port
- */
-function main() {
-    logger.info(`starting gRPC server on port ${PORT}...`);
-    const server = new grpc.Server();
-    server.addService(shopProto.UserService.service, {});
-    server.bind(`0.0.0.0:${PORT}`, grpc.ServerCredentials.createInsecure());
-    server.start();
-}
+// ShopServer.PORT = process.env.PORT;
 
-main();
+module.exports = ShopServer;
