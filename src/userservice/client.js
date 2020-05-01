@@ -17,5 +17,16 @@ const logger = pino({
     useLevelLabels: true
 });
 
-const request = {};
+const request = {
+    value: 'enter_the_user_id_to_be_requested',
+};
+
+client.getUser({}, (err, response) => {
+    if (err) {
+        logger.error(`Error in getUser: ${err}`);
+    } else {
+        logger.info(`user: ${response.firstName} ${response.lastName}`);
+    }
+})
+
 

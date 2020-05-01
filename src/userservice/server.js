@@ -7,7 +7,7 @@ const MAIN_PROTO_PATH = path.join(__dirname, './proto/app.proto');
 
 const PORT = process.env.PORT;
 
-const users = require('./users');
+const shopProto = _loadProto(MAIN_PROTO_PATH).shop;
 
 const logger = pino({
     name: 'userservice-server',
@@ -20,50 +20,52 @@ const logger = pino({
  * loads a protobuf file
  */
 
-class ShopServer {
-    constructor(protoRoot, port = PORT) {
-        this.port = port;
+const _loadProto = path => {
+    const packageDefinition = protoLoader.loadSync(
+        path, {
+            keepCase: true,
+            longs: String,
+            enums: String,
+            defaults: true,
+            oneofs: true
+        }
+    );
 
-        this.packages = {
-            shop: loadProto(MAIN_PROTO_PATH),
-        };
-
-        this.server = new grpc.Server();
-        this.loadAllProtos(protoRoot);
-
-    }
-
-    listen() {
-        this.server.bind(`0.0.0.0:${this.port}`, grpc.ServerCredentials.createInsecure());
-        logger.info(`user service grpc server listening on ${this.port}`);
-        this.server.start();
-    }
-
-    loadProto(path) {
-        const packageDefinition = protoLoader.loadSync(
-            path, {
-                keepCase: true,
-                longs: String,
-                enums: String,
-                defaults: true,
-                oneofs: true
-            }
-        );
-
-        return grpc.loadPackageDefinition(packageDefinition);
-    }
-
-    loadAllProtos(protoRoot) {
-        const shopPackage = this.packages.shop.shop;
-
-        this.server.addService(
-            shopPackage.UserService.service,
-            {}
-        );
-
-    }
+    return grpc.loadPackageDefinition(packageDefinition);
 }
 
-// ShopServer.PORT = process.env.PORT;
+/**
+ *
+ * @param call {UserId}
+ * @param callback {err, User}
+ */
+function getUser(call, callback) {
+    const request = call.request;
 
-module.exports = ShopServer;
+    try {
+        const data = require('./data/users_db.json');
+
+        for (let d of data) {
+            if (d.id === request.value) {
+                callback(null, d);
+            }
+        }
+    } catch (e) {
+        logger.error(`getting user ${request.value} failed: ${e}`);
+        callback(e);
+    }
+
+}
+/**
+ * starts an RPC server that receives requests for the
+ * User service at the sample server port
+ */
+function main() {
+    logger.info(`starting gRPC server on port ${PORT}...`);
+    const server = new grpc.Server();
+    server.addService(shopProto.UserService.service, {getUser});
+    server.bind(`0.0.0.0:${PORT}`, grpc.ServerCredentials.createInsecure());
+    server.start();
+}
+
+main();
