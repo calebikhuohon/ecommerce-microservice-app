@@ -4,7 +4,7 @@ const leftpad = require('left-pad');
 const pino = require('pino');
 
 const PROTO_PATH = path.join(__dirname, './proto/app.proto');
-const PORT = 7000;
+const PORT = process.env.PORT || "5505";
 
 const shopProto = grpc.load(PROTO_PATH).shop;
 const client = new shopProto.UserService(`localhost:${PORT}`,
@@ -18,10 +18,10 @@ const logger = pino({
 });
 
 const request = {
-    value: 'enter_the_user_id_to_be_requested',
+    value: '2',
 };
 
-client.getUser({}, (err, response) => {
+client.getUser(request, (err, response) => {
     if (err) {
         logger.error(`Error in getUser: ${err}`);
     } else {

@@ -5,16 +5,7 @@ const pino = require('pino');
 
 const MAIN_PROTO_PATH = path.join(__dirname, './proto/app.proto');
 
-const PORT = process.env.PORT;
-
-const shopProto = _loadProto(MAIN_PROTO_PATH).shop;
-
-const logger = pino({
-    name: 'userservice-server',
-    messageKey: 'message',
-    changeLevelName: 'severity',
-    useLevelLabels: true
-})
+const PORT = process.env.PORT || "5505";
 
 /**
  * loads a protobuf file
@@ -33,6 +24,15 @@ const _loadProto = path => {
 
     return grpc.loadPackageDefinition(packageDefinition);
 }
+
+const shopProto = _loadProto(MAIN_PROTO_PATH).shop;
+
+const logger = pino({
+    name: 'userservice-server',
+    messageKey: 'message',
+    changeLevelName: 'severity',
+    useLevelLabels: true
+})
 
 /**
  *
