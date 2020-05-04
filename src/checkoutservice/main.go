@@ -67,13 +67,17 @@ func main() {
 	}
 
 	svc := new(checkoutService)
+	os.Setenv("PRODUCT_SERVICE_ADDR", "5051")
+	os.Setenv("CART_SERVICE_ADDR", "5052")
+	os.Setenv("USER_SERVICE_ADDR", "5505")
+
 	mustMapEnv(&svc.productSvcAddr, "PRODUCT_SERVICE_ADDR")
 	mustMapEnv(&svc.cartSvcAddr, "CART_SERVICE_ADDR")
 	mustMapEnv(&svc.userSvcAddr, "USER_SERVICE_ADDR")
 
 	log.Infof("service config: %+v", svc)
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
 		log.Fatal(err)
 	}
