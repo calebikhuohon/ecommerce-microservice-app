@@ -15,7 +15,7 @@
 // Modifications made:
 // Modify attached service addresses to suite project usecase
 
-package checkoutservice
+package main
 
 import (
 	"context"
@@ -103,7 +103,7 @@ func mustMapEnv(target *string, envKey string) {
 }
 
 func (c *checkoutService) PlaceOrder(ctx context.Context, request *pb.PlaceOrderRequest) (*pb.PlaceOrderResponse, error) {
-	log.Info("[PlaceOrder] user_id=%q", req.userId)
+	log.Info("[PlaceOrder] user_id=%q", request.UserId)
 
 	orderId, err := uuid.NewUUID()
 	if err != nil {
