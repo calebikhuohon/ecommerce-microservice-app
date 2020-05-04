@@ -82,12 +82,12 @@ message PlaceOrderRequest {
   User user = 3;
 }
 
-message CreditCardInfo {
-  string credit_card_number = 1;
-  int32 credit_card_cvv = 2;
-  int32 credit_card_expiration_year = 3;
-  int32 credit_card_expiration_month = 4;
-}
+//message CreditCardInfo {
+//  string credit_card_number = 1;
+//  int32 credit_card_cvv = 2;
+//  int32 credit_card_expiration_year = 3;
+//  int32 credit_card_expiration_month = 4;
+//}
 
 message PlaceOrderResponse {
   OrderResult order = 1;
