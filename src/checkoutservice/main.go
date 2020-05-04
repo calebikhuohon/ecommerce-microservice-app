@@ -140,7 +140,6 @@ func (c *checkoutService) PlaceOrder(ctx context.Context, request *pb.PlaceOrder
 type orderPrep struct {
 	orderItems []*pb.OrderItem
 	cartItems  []*pb.CartItem
-
 }
 
 func (c *checkoutService) prepareOrderItemsFromCart(ctx context.Context, userId string, address *pb.Address) (orderPrep, error) {
