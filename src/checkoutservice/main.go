@@ -19,6 +19,7 @@ package checkoutservice
 
 import (
 	"context"
+	"do-tutorial/src/checkoutservice/money"
 	"fmt"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -117,17 +118,17 @@ func (c *checkoutService) PlaceOrder(ctx context.Context, request *pb.PlaceOrder
 
 	total := pb.Money{
 		CurrencyCode: "USD",
-		Units: 0,
-		Nanos: 0,
+		Units:        0,
+		Nanos:        0,
 	}
 
 	for _, it := range prep.orderItems {
-		//total =
+		total = money.Must(money.Sum(total, *it.Cost))
 	}
 
 	orderResult := &pb.OrderResult{
-		OrderId: orderId.String(),
-		Items: prep.orderItems,
+		OrderId:         orderId.String(),
+		Items:           prep.orderItems,
 		ShippingAddress: request.User.Address,
 	}
 
@@ -139,6 +140,7 @@ func (c *checkoutService) PlaceOrder(ctx context.Context, request *pb.PlaceOrder
 type orderPrep struct {
 	orderItems []*pb.OrderItem
 	cartItems  []*pb.CartItem
+
 }
 
 func (c *checkoutService) prepareOrderItemsFromCart(ctx context.Context, userId string, address *pb.Address) (orderPrep, error) {
@@ -212,4 +214,3 @@ func (c *checkoutService) prepOrderItems(ctx context.Context, items []*pb.CartIt
 	}
 	return out, nil
 }
-
