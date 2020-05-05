@@ -15,38 +15,43 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	pb "do-tutorial/src/productservice/genproto"
 	"fmt"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 )
 
 var (
-	products pb.ListProductsResponse
+	products     pb.ListProductsResponse
 	productMutex *sync.Mutex
-	log *logrus.Logger
+	log          *logrus.Logger
 	extraLatency time.Duration
 
 	port = "3050"
 
 	reloadProducts bool
-
 )
 
-func init()  {
+func init() {
 	log = logrus.New()
 	log.Formatter = &logrus.JSONFormatter{
 		FieldMap: logrus.FieldMap{
-			logrus.FieldKeyTime: "timestamp",
+			logrus.FieldKeyTime:  "timestamp",
 			logrus.FieldKeyLevel: "severity",
-			logrus.FieldKeyMsg: "message",
+			logrus.FieldKeyMsg:   "message",
 		},
 		TimestampFormat: time.RFC3339Nano,
 	}
@@ -59,7 +64,7 @@ func init()  {
 	}
 }
 
-func main()  {
+func main() {
 	// set injected latency
 	if s := os.Getenv("EXTRA_LATENCY"); s != "" {
 		v, err := time.ParseDuration(s)
@@ -78,7 +83,7 @@ func main()  {
 
 	go func() {
 		for {
-			sig := <- sigs
+			sig := <-sigs
 			log.Printf("received signal: %s", sig)
 			if sig == syscall.SIGUSR1 {
 				reloadProducts = true
@@ -106,25 +111,70 @@ func main()  {
 
 	pb.RegisterProductServiceServer(srv, svc)
 	go srv.Serve(l)
-	fmt.Sprintf("%s",l.Addr().String())
+	fmt.Sprintf("%s", l.Addr().String())
 
 	select {}
 }
 
-type Products struct {}
+type Products struct{}
 
+func readProductFile(products *pb.ListProductsResponse) error {
+	productMutex.Lock()
+	defer productMutex.Unlock()
 
+	productJSON, err := ioutil.ReadFile("products.json")
+	if err != nil {
+		log.Fatalf("failed to open product json file: %v", err)
+		return err
+	}
+
+	if err := jsonpb.Unmarshal(bytes.NewReader(productJSON), products); err != nil {
+		log.Warnf("failed to parse the product JSON: %v", err)
+		return err
+	}
+	log.Info("successfully parsed product catalog json")
+	return nil
+}
+
+func parseProducts() []*pb.Product {
+	if reloadProducts || len(products.Products) == 0 {
+		err := readProductFile(&products)
+		if err != nil {
+			return []*pb.Product{}
+		}
+	}
+	return products.Products
+}
 
 func (p Products) ListProducts(ctx context.Context, empty *pb.Empty) (*pb.ListProductsResponse, error) {
-	panic("implement me")
+	time.Sleep(extraLatency)
+	return &pb.ListProductsResponse{Products: parseProducts()}, nil
 }
 
 func (p Products) GetProduct(ctx context.Context, request *pb.GetProductRequest) (*pb.Product, error) {
-	panic("implement me")
+	time.Sleep(extraLatency)
+	var found *pb.Product
+	for i := 0; i < len(parseProducts()); i++ {
+		if request.Id == parseProducts()[i].Id {
+			found = parseProducts()[i]
+		}
+	}
+
+	if found == nil {
+		return nil, status.Errorf(codes.NotFound, "no product with ID %s", request.Id)
+	}
+	return found, nil
 }
 
 func (p Products) SearchProducts(ctx context.Context, request *pb.SearchProductsRequest) (*pb.SearchProductsResponse, error) {
-	panic("implement me")
+	var ps []*pb.Product
+
+	for _, p := range parseProducts() {
+		if strings.Contains(strings.ToLower(p.Name), strings.ToLower(request.Query)) ||
+			strings.Contains(strings.ToLower(p.Description), strings.ToLower(request.Query)) {
+			ps = append(ps, p)
+		}
+	}
+
+	return &pb.SearchProductsResponse{Results: ps}, nil
 }
-
-
