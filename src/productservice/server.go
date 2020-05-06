@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -106,12 +107,19 @@ func main() {
 	}
 
 	var srv *grpc.Server
-
+	if os.Getenv("DISABLE_STATS") == "" {
+		log.Info("Stats enabled.")
+		srv = grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{}))
+	} else {
+		log.Info("Stats disabled.")
+		srv = grpc.NewServer()
+	}
 	svc := &Products{}
 
 	pb.RegisterProductServiceServer(srv, svc)
-	go srv.Serve(l)
-	fmt.Sprintf("%s", l.Addr().String())
+	log.Infof("starting to listen on tcp: %q", l.Addr().String())
+	err = srv.Serve(l)
+	log.Fatal(err)
 
 	select {}
 }
@@ -146,12 +154,12 @@ func parseProducts() []*pb.Product {
 	return products.Products
 }
 
-func (p Products) ListProducts(ctx context.Context, empty *pb.Empty) (*pb.ListProductsResponse, error) {
+func (p *Products) ListProducts(ctx context.Context, empty *pb.Empty) (*pb.ListProductsResponse, error) {
 	time.Sleep(extraLatency)
 	return &pb.ListProductsResponse{Products: parseProducts()}, nil
 }
 
-func (p Products) GetProduct(ctx context.Context, request *pb.GetProductRequest) (*pb.Product, error) {
+func (p *Products) GetProduct(ctx context.Context, request *pb.GetProductRequest) (*pb.Product, error) {
 	time.Sleep(extraLatency)
 	var found *pb.Product
 	for i := 0; i < len(parseProducts()); i++ {
@@ -166,7 +174,7 @@ func (p Products) GetProduct(ctx context.Context, request *pb.GetProductRequest)
 	return found, nil
 }
 
-func (p Products) SearchProducts(ctx context.Context, request *pb.SearchProductsRequest) (*pb.SearchProductsResponse, error) {
+func (p *Products) SearchProducts(ctx context.Context, request *pb.SearchProductsRequest) (*pb.SearchProductsResponse, error) {
 	var ps []*pb.Product
 
 	for _, p := range parseProducts() {
