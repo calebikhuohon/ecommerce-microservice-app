@@ -27,6 +27,6 @@ client.getUser(request, (err, response) => {
     } else {
         logger.info(`user: ${response.firstName} ${response.lastName}`);
     }
-})
+});
 
 

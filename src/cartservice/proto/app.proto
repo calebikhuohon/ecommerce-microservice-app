@@ -1,0 +1,136 @@
+syntax = "proto3";
+
+package shop;
+
+//-------------cart service----------------
+service CartService {
+  rpc AddItem(AddItemRequest) returns (Empty) {}
+  rpc GetCart(GetCartRequest) returns (Cart) {}
+  rpc EmptyCart(EmptyCartRequest) returns (Empty) {}
+}
+
+message CartItem {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message AddItemRequest {
+  string user_id = 1;
+  CartItem item = 2;
+}
+
+message EmptyCartRequest {
+  string user_id = 1;
+}
+
+message GetCartRequest {
+  string user_id = 1;
+}
+
+message Cart {
+  string user_id = 1;
+  repeated CartItem items = 2;
+}
+
+message Empty {}
+
+// ----------- Product service ---------------
+service ProductService {
+  rpc ListProducts(Empty) returns (ListProductsResponse) {}
+  rpc GetProduct(GetProductRequest) returns (Product) {}
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse) {}
+}
+
+message Product {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string picture = 4;
+  Money price_usd = 5;
+}
+
+message Money {
+  string currency_code = 1;
+  int64 units = 2;
+  int32 nanos = 3;
+}
+
+message ListProductsResponse {
+  repeated Product products = 1;
+}
+
+message GetProductRequest {
+  string id = 1;
+}
+
+message SearchProductsRequest {
+  string query = 1;
+}
+
+message SearchProductsResponse {
+  repeated Product results = 1;
+}
+
+// ------------------ Checkout service -----------------------------
+service CheckoutService {
+  rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse) {}
+}
+
+message PlaceOrderRequest {
+  string user_id = 1;
+  string user_currency = 2;
+  User user = 3;
+}
+
+message CreditCardInfo {
+  string credit_card_number = 1;
+  int32 credit_card_cvv = 2;
+  int32 credit_card_expiration_year = 3;
+  int32 credit_card_expiration_month = 4;
+}
+
+message PlaceOrderResponse {
+  OrderResult order = 1;
+}
+
+message OrderItem {
+  CartItem item = 1;
+  Money cost = 2;
+}
+
+message Address {
+  string street_address = 1;
+  string city = 2;
+  string state = 3;
+  string country = 4;
+  int32 zip_code = 5;
+}
+
+message OrderResult {
+  string orderId = 1;
+  string shippingTrackingId = 2;
+  Money shippingCost = 3;
+  Address shippingAddress = 4;
+  repeated OrderItem items = 5;
+}
+
+// --------------- User service ---------------------------
+service UserService {
+  rpc getUsers(Empty) returns (User) {}
+  rpc addUser(User) returns (UserId) {}
+  rpc updateProfile(UserId) returns(User) {}
+  rpc getUser(UserId) returns(User) {}
+}
+
+message User {
+  string firstName = 1;
+  string lastName = 2;
+  string email = 3;
+  Address address = 4;
+  CreditCardInfo creditCard = 5;
+  string id = 6;
+}
+
+message UserId {
+  string value = 1;
+}
